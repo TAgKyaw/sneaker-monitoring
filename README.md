@@ -1,4 +1,4 @@
-# 👟 Sneaker Drop Monitor
+# 👟 Sneaker Monitoring Dashboard
 
 A real-time web dashboard that monitors independent UK sneaker boutiques for new releases from **Nike, Vans, and New Balance**.
 
