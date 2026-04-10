@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Drop Monitor Dashboard</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #0f0f0f; color: #eee; margin: 0; display: flex; height: 100vh; }
+        
+        /* Sidebar for Logs */
+        .sidebar { width: 350px; background: #1a1a1a; border-right: 1px solid #333; display: flex; flex-direction: column; }
+        .log-header { padding: 20px; background: #222; font-weight: bold; border-bottom: 1px solid #333; }
+        #log-feed { flex-grow: 1; overflow-y: auto; padding: 15px; font-family: 'Courier New', monospace; font-size: 0.85rem; }
+        .log-item { margin-bottom: 8px; line-height: 1.4; border-bottom: 1px solid #222; padding-bottom: 4px; }
+        .log-time { color: #666; margin-right: 8px; }
+        .log-error { color: #ff5555; }
+        .log-success { color: #55ff55; }
+        .log-process { color: #55ffff; }
+
+        /* Main Content */
+        .main { flex-grow: 1; padding: 40px; overflow-y: auto; }
+        .controls { background: #222; padding: 20px; border-radius: 8px; margin-bottom: 30px; display: flex; align-items: center; gap: 20px; }
+        
+        button { padding: 10px 25px; border-radius: 5px; border: none; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        #startBtn { background: #00c853; color: white; }
+        #stopBtn { background: #d50000; color: white; display: none; }
+        
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; }
+        .card { background: #222; border-radius: 8px; overflow: hidden; border: 1px solid #333; }
+        .card img { width: 100%; height: 200px; object-fit: cover; background: #fff; }
+        .card-body { padding: 15px; }
+        .card-tag { font-size: 0.7rem; background: #333; padding: 3px 8px; border-radius: 10px; color: #aaa; }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <div class="log-header">LIVE SCRIPT FEED</div>
+        <div id="log-feed"></div>
+    </div>
+
+    <div class="main">
+        <div class="controls">
+            <h2 style="margin:0">Sneaker Monitor</h2>
+            <button id="startBtn" onclick="toggle(true)">START SCANNER</button>
+            <button id="stopBtn" onclick="toggle(false)">STOP SCANNER</button>
+            <span id="status-badge" style="color: #666;">Status: Offline</span>
+        </div>
+
+        <h3>New Drops Found</h3>
+        <div id="product-grid" class="grid"></div>
+    </div>
+
+    <script>
+        const socket = io();
+        const logFeed = document.getElementById('log-feed');
+        const grid = document.getElementById('product-grid');
+
+        function toggle(state) {
+            socket.emit('toggle-monitor', state);
+            document.getElementById('startBtn').style.display = state ? 'none' : 'block';
+            document.getElementById('stopBtn').style.display = state ? 'block' : 'none';
+            document.getElementById('status-badge').innerText = state ? 'Status: Running...' : 'Status: Offline';
+            document.getElementById('status-badge').style.color = state ? '#00c853' : '#666';
+        }
+
+        // Listen for log updates
+        socket.on('status-log', (log) => {
+            const div = document.createElement('div');
+            div.className = `log-item log-${log.type}`;
+            div.innerHTML = `<span class="log-time">[${log.time}]</span> ${log.text}`;
+            logFeed.prepend(div);
+        });
+
+        // Listen for actual shoe drops
+        socket.on('new-product', (data) => {
+            const card = `
+                <div class="card">
+                    <img src="${data.image}">
+                    <div class="card-body">
+                        <span class="card-tag">${data.brand}</span>
+                        <p style="color:#00c853; margin:5px 0; font-size:0.8rem">${data.store}</p>
+                        <h4 style="margin:5px 0">${data.title}</h4>
+                        <p>£${data.price}</p>
+                        <a href="${data.link}" target="_blank" style="color:#55ffff; text-decoration:none; font-size:0.9rem">View on Store →</a>
+                    </div>
+                </div>
+            `;
+            grid.insertAdjacentHTML('afterbegin', card);
+            new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg').play();
+        });
+    </script>
+</body>
+</html>
